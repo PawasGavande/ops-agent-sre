@@ -8,6 +8,7 @@ from .analyzer import analyze
 from .config import settings
 from .models import AlertmanagerPayload
 from .notifier import notify
+from .remediation import propose_rollback
 
 log = logging.getLogger("opsagent")
 app = FastAPI(title="OpsAgent")
@@ -41,6 +42,9 @@ async def alertmanager(payload: AlertmanagerPayload,
             results.append({"alert": name, "skipped": str(exc)})
             continue
         report = await analyze(name, diag)
+        outcome = await propose_rollback(report, diag.app)
+        if outcome.status != "skipped" or settings.remediation_enabled:
+            report.remediation = outcome.as_dict() | {"status": outcome.status}
         sent = await notify(report)
         log.info("analyzed alert=%s pod=%s/%s source=%s", name, ns, pod, report.source)
         results.append({"alert": name, "report": report.model_dump(), "notified": sent})

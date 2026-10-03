@@ -27,6 +27,7 @@ class Diagnostics(BaseModel):
     previous_logs: str = ""
     describe: str = ""
     events: str = ""
+    app: str = ""  # value of the pod's `app` label, used to locate its manifest
     errors: list[str] = Field(default_factory=list)
 
 
@@ -39,3 +40,4 @@ class RCAReport(BaseModel):
     suggested_fix: str
     confidence: str = "medium"  # low | medium | high
     source: str = "heuristic"  # heuristic | llm
+    remediation: dict[str, Any] | None = None
