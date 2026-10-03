@@ -1,0 +1,44 @@
+# Run: python3 scripts/extract-rules.py /tmp/opsagent-rules.yml && promtool test rules monitoring/tests/rules_test.yml
+# (rule_files path below is relative to this file's CWD when invoked from repo root via CI)
+rule_files:
+  - /tmp/opsagent-rules.yml
+evaluation_interval: 15s
+tests:
+  - interval: 15s
+    input_series:
+      - series: 'kube_pod_container_status_waiting_reason{namespace="opsagent-demo",pod="faulty-app-crash-x",container="app",reason="CrashLoopBackOff"}'
+        values: '0+0x4 1+0x20'
+      - series: 'kube_pod_container_status_waiting_reason{namespace="opsagent-demo",pod="faulty-app-healthy-x",container="app",reason="CrashLoopBackOff"}'
+        values: '0+0x24'
+    alert_rule_test:
+      - eval_time: 30s
+        alertname: PodCrashLooping
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: PodCrashLooping
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              namespace: opsagent-demo
+              pod: faulty-app-crash-x
+              container: app
+              reason: CrashLoopBackOff
+            exp_annotations:
+              summary: "Pod opsagent-demo/faulty-app-crash-x is in CrashLoopBackOff"
+  - interval: 15s
+    input_series:
+      - series: 'kube_pod_container_status_restarts_total{namespace="opsagent-demo",pod="faulty-app-leak-x",container="app"}'
+        values: '0 0 0 1 1 1 1 1'
+      - series: 'kube_pod_container_status_last_terminated_reason{namespace="opsagent-demo",pod="faulty-app-leak-x",container="app",reason="OOMKilled"}'
+        values: '0 0 0 1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 90s
+        alertname: PodOOMKilled
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              namespace: opsagent-demo
+              pod: faulty-app-leak-x
+              container: app
+            exp_annotations:
+              summary: "Pod opsagent-demo/faulty-app-leak-x was OOMKilled"

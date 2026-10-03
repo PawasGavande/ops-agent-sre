@@ -1,0 +1,69 @@
+# Lightweight kube-prometheus-stack config for the local kind cluster.
+# Install via: make monitoring   (see scripts/monitoring-up.sh)
+
+# Only our own rules fire, so each failure produces exactly one alert.
+defaultRules:
+  create: false
+
+# kind has no reachable control-plane metrics endpoints; skip the noise.
+kubeEtcd: {enabled: false}
+kubeScheduler: {enabled: false}
+kubeControllerManager: {enabled: false}
+kubeProxy: {enabled: false}
+
+grafana:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 6h
+    resources:
+      requests: {cpu: 100m, memory: 400Mi}
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: {cpu: 25m, memory: 64Mi}
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: opsagent
+      group_by: [alertname, namespace, pod]
+      group_wait: 10s        # short for demos; raise in production
+      group_interval: 1m
+      repeat_interval: 1h    # each repeat triggers an LLM call + Slack post
+    receivers:
+      - name: opsagent
+        webhook_configs:
+          - url: http://opsagent.opsagent-system.svc.cluster.local/webhook/alertmanager
+            send_resolved: false
+            # If you set WEBHOOK_TOKEN on the agent, add:
+            # http_config:
+            #   authorization:
+            #     type: Bearer
+            #     credentials: <token>
+
+additionalPrometheusRulesMap:
+  opsagent-demo:
+    groups:
+      - name: opsagent.workloads
+        rules:
+          - alert: PodCrashLooping
+            expr: |
+              kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", namespace="opsagent-demo"} == 1
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is in CrashLoopBackOff"
+          - alert: PodOOMKilled
+            expr: |
+              increase(kube_pod_container_status_restarts_total{namespace="opsagent-demo"}[10m]) > 0
+              and on (namespace, pod, container)
+              kube_pod_container_status_last_terminated_reason{reason="OOMKilled", namespace="opsagent-demo"} == 1
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} was OOMKilled"

@@ -18,8 +18,8 @@ In production Kubernetes environments, engineers spend 20–45 minutes digging t
 4. **Self-Healing / GitOps Rollback:** Posts an interactive RCA report to Slack and opens an automated Pull Request / ArgoCD rollback.
 
 ## 🗺️ Project Phases (Tracked via GitHub Projects)
-- **Phase 1 (In Progress):** Local Kubernetes cluster setup + simulated faulty microservice (`CrashLoopBackOff` / memory leaks).
-- **Phase 2 (Ready):** Python FastAPI Webhook + AI Log Analyzer Agent + Slack notifications.
+- **Phase 1 (Done):** Local Kubernetes cluster setup + simulated faulty microservice (`CrashLoopBackOff` / memory leaks).
+- **Phase 2 (Done):** Python FastAPI Webhook + AI Log Analyzer Agent + Slack notifications.
 - **Phase 3 (Backlog):** AWS EKS provisioning via Terraform, ArgoCD GitOps, and GitHub Actions CI/CD.
 
 ## 🧪 Phase 1 – Local cluster & faulty app
@@ -55,4 +55,24 @@ Create the secret the agent reads (all optional; without keys it falls back to h
 kubectl create secret generic opsagent-secrets -n opsagent-system \
   --from-literal=ANTHROPIC_API_KEY=... --from-literal=SLACK_WEBHOOK_URL=... \
   --from-literal=WEBHOOK_TOKEN=...
+```
+
+## 📈 Monitoring & end-to-end demo
+
+Needs Docker, kind, kubectl and [Helm](https://helm.sh/).
+
+```bash
+make up           # kind cluster + faulty apps
+make monitoring   # agent + Prometheus + Alertmanager (set ANTHROPIC_API_KEY / SLACK_WEBHOOK_URL first for LLM RCA + Slack)
+make agent-logs   # after ~3 min: watch RCA reports for the crash and leak pods
+make alerts       # Alertmanager UI on http://localhost:9093
+make test-alert   # no cluster needed: POST a fake alert to a locally running agent
+```
+
+Flow: kube-state-metrics → Prometheus rules (`PodCrashLooping`, `PodOOMKilled`) → Alertmanager → agent webhook → read-only `kubectl` diagnostics → RCA → Slack.
+
+Alert rules are unit-tested with promtool:
+```bash
+python3 scripts/extract-rules.py /tmp/opsagent-rules.yml
+promtool test rules monitoring/tests/rules_test.yml
 ```
