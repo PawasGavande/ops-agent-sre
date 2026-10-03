@@ -48,3 +48,11 @@ kubectl apply -f k8s/agent/agent.yaml
 ```
 Point Alertmanager's webhook receiver at `http://opsagent.opsagent-system/webhook/alertmanager`.
 The agent's ServiceAccount is **read-only** (get/list on pods, pod logs, events).
+
+### LLM RCA + Slack
+Create the secret the agent reads (all optional; without keys it falls back to heuristic RCA / log-only):
+```bash
+kubectl create secret generic opsagent-secrets -n opsagent-system \
+  --from-literal=ANTHROPIC_API_KEY=... --from-literal=SLACK_WEBHOOK_URL=... \
+  --from-literal=WEBHOOK_TOKEN=...
+```
