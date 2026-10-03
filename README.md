@@ -38,3 +38,13 @@ make down      # tear everything down
 | `faulty-app-healthy` | `healthy` | none (control) |
 | `faulty-app-crash` | `crash` | `CrashLoopBackOff` (exit 1 after 10s, DB connection error in logs) |
 | `faulty-app-leak` | `leak` | `OOMKilled` (leaks 5 MB/s against a 64Mi limit) |
+
+## 🤖 Phase 2 – Agent (webhook + diagnostics + RCA)
+
+```bash
+cd agent && pip install -r requirements-dev.txt && PYTHONPATH=. pytest -q
+docker build -t opsagent/agent:0.1.0 agent && kind load docker-image opsagent/agent:0.1.0 --name opsagent
+kubectl apply -f k8s/agent/agent.yaml
+```
+Point Alertmanager's webhook receiver at `http://opsagent.opsagent-system/webhook/alertmanager`.
+The agent's ServiceAccount is **read-only** (get/list on pods, pod logs, events).
