@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faulty-app-crash
+  namespace: opsagent-demo
+  labels:
+    app: faulty-app-crash
+    opsagent/fault: "crash"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faulty-app-crash
+  template:
+    metadata:
+      labels:
+        app: faulty-app-crash
+        opsagent/fault: "crash"
+    spec:
+      containers:
+        - name: app
+          image: opsagent/faulty-app:0.1.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FAULT_MODE
+              value: "crash"
+          ports:
+            - containerPort: 8080
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 128Mi}

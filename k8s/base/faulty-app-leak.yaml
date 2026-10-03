@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faulty-app-leak
+  namespace: opsagent-demo
+  labels:
+    app: faulty-app-leak
+    opsagent/fault: "leak"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faulty-app-leak
+  template:
+    metadata:
+      labels:
+        app: faulty-app-leak
+        opsagent/fault: "leak"
+    spec:
+      containers:
+        - name: app
+          image: opsagent/faulty-app:0.1.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FAULT_MODE
+              value: "leak"
+          ports:
+            - containerPort: 8080
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
