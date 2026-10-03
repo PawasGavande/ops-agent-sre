@@ -21,3 +21,20 @@ In production Kubernetes environments, engineers spend 20–45 minutes digging t
 - **Phase 1 (In Progress):** Local Kubernetes cluster setup + simulated faulty microservice (`CrashLoopBackOff` / memory leaks).
 - **Phase 2 (Ready):** Python FastAPI Webhook + AI Log Analyzer Agent + Slack notifications.
 - **Phase 3 (Backlog):** AWS EKS provisioning via Terraform, ArgoCD GitOps, and GitHub Actions CI/CD.
+
+## 🧪 Phase 1 – Local cluster & faulty app
+
+Prereqs: Docker, [kind](https://kind.sigs.k8s.io/), kubectl.
+
+```bash
+make up        # kind cluster + image build + deploy
+make status    # expect: healthy=Running, crash=CrashLoopBackOff, leak=OOMKilled
+make logs      # previous-container logs of the crashing pod
+make down      # tear everything down
+```
+
+| Deployment | `FAULT_MODE` | Expected failure |
+|---|---|---|
+| `faulty-app-healthy` | `healthy` | none (control) |
+| `faulty-app-crash` | `crash` | `CrashLoopBackOff` (exit 1 after 10s, DB connection error in logs) |
+| `faulty-app-leak` | `leak` | `OOMKilled` (leaks 5 MB/s against a 64Mi limit) |
