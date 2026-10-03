@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROMETHEUS_VERSION: "2.54.1"
+  ALERTMANAGER_VERSION: "0.27.0"
+  KUBECONFORM_VERSION: "0.6.7"
+
+jobs:
+  agent-tests:
+    name: Agent tests + lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: agent/requirements-dev.txt
+      - run: pip install -r agent/requirements-dev.txt ruff
+      - name: Lint
+        run: ruff check agent apps
+      - name: Unit tests
+        working-directory: agent
+        run: pytest -q
+
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck scripts/*.sh
+
+  manifests:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubeconform
+        run: |
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | tar xz
+          sudo mv kubeconform /usr/local/bin/
+      - name: Validate kustomize output and agent manifests
+        run: |
+          kubectl kustomize k8s/base | kubeconform -strict -summary -
+          kubeconform -strict -summary k8s/agent/agent.yaml
+
+  monitoring:
+    name: Alert rules + Alertmanager config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install promtool and amtool
+        run: |
+          curl -fsSL "https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz" | tar xz
+          curl -fsSL "https://github.com/prometheus/alertmanager/releases/download/v${ALERTMANAGER_VERSION}/alertmanager-${ALERTMANAGER_VERSION}.linux-amd64.tar.gz" | tar xz
+          echo "$PWD/prometheus-${PROMETHEUS_VERSION}.linux-amd64" >> "$GITHUB_PATH"
+          echo "$PWD/alertmanager-${ALERTMANAGER_VERSION}.linux-amd64" >> "$GITHUB_PATH"
+      - run: pip install pyyaml
+      - name: Extract rules and Alertmanager config
+        run: |
+          python3 scripts/extract-rules.py /tmp/opsagent-rules.yml
+          python3 -c "import yaml; v=yaml.safe_load(open('monitoring/kube-prometheus-stack-values.yaml')); yaml.safe_dump(v['alertmanager']['config'], open('/tmp/am.yml','w'))"
+      - run: promtool check rules /tmp/opsagent-rules.yml
+      - run: promtool test rules monitoring/tests/rules_test.yml
+      - run: amtool check-config /tmp/am.yml
+
+  docker:
+    name: Docker builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t opsagent/faulty-app:ci apps/faulty-app
+      - run: docker build -t opsagent/agent:ci agent

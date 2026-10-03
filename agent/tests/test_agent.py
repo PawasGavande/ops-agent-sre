@@ -1,9 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
-
 from opsagent import diagnostics
-from opsagent.models import Diagnostics
 from opsagent.analyzer import heuristic_rca
+from opsagent.models import Diagnostics
 from opsagent.webhook import app
 
 client = TestClient(app)

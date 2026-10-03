@@ -1,7 +1,6 @@
 import asyncio
 
 import httpx
-
 from opsagent import analyzer, notifier
 from opsagent.models import Diagnostics, RCAReport
 
@@ -37,8 +36,9 @@ def test_llm_rca_parses_response(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
 
     def handler(request):
-        return httpx.Response(200, json={"content": [{"type": "text", "text":
-            '{"root_cause":"db down","evidence":["e1"],"suggested_fix":"fix","confidence":"high"}'}]})
+        text = ('{"root_cause":"db down","evidence":["e1"],'
+                '"suggested_fix":"fix","confidence":"high"}')
+        return httpx.Response(200, json={"content": [{"type": "text", "text": text}]})
     transport = httpx.MockTransport(handler)
     real = httpx.AsyncClient
     monkeypatch.setattr(analyzer.httpx, "AsyncClient",

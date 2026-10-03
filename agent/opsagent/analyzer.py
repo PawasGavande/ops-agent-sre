@@ -6,7 +6,6 @@ import re
 import httpx
 
 from .config import settings
-
 from .models import Diagnostics, RCAReport
 
 

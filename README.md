@@ -1,6 +1,7 @@
 # 🚀 OpsAgent – Autonomous AI SRE & Kubernetes Self-Healing Engine
 
 [![Project Board](https://img.shields.io/badge/GitHub_Project_Board-Live_Roadmap-2ea44f?style=for-the-badge&logo=github)](https://github.com/users/PawasGavande/projects/3)
+[![CI](https://github.com/PawasGavande/ops-agent-sre/actions/workflows/ci.yml/badge.svg)](https://github.com/PawasGavande/ops-agent-sre/actions/workflows/ci.yml)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
 ![AWS](https://img.shields.io/badge/AWS_EKS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
