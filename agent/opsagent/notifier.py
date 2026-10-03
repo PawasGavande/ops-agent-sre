@@ -19,7 +19,8 @@ def build_blocks(r: RCAReport) -> list[dict]:
             {"type": "mrkdwn", "text": f"*Confidence*\n{r.confidence} ({r.source})"}]},
         {"type": "section", "text": {"type": "mrkdwn", "text": f"*Root cause*\n{r.root_cause}"}},
         {"type": "section", "text": {"type": "mrkdwn", "text": f"*Evidence*\n{evidence}"}},
-        {"type": "section", "text": {"type": "mrkdwn", "text": f"*Suggested fix*\n{r.suggested_fix}"}},
+        {"type": "section",
+         "text": {"type": "mrkdwn", "text": f"*Suggested fix*\n{r.suggested_fix}"}},
     ]
 
 
