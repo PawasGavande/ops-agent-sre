@@ -56,4 +56,10 @@ def collect(namespace: str, pod: str) -> Diagnostics:
             setattr(d, field, run_kubectl(args))
         except Exception as exc:  # keep going; partial data is still useful
             d.errors.append(f"{field}: {exc}")
+    try:
+        label = run_kubectl(["get", "pod", p, "-n", ns,
+                             "-o", "jsonpath={.metadata.labels.app}"]).strip()
+        d.app = validate_name(label) if label else ""
+    except Exception as exc:
+        d.errors.append(f"app label: {exc}")
     return d

@@ -9,9 +9,19 @@ log = logging.getLogger("opsagent")
 _EMOJI = {"high": "🔴", "medium": "🟠", "low": "🟡"}
 
 
+def _remediation_text(rem: dict) -> str:
+    status = rem.get("status", "")
+    if status == "pr-opened":
+        return f"🛠️ *Rollback PR opened (needs your review):* {rem.get('pr_url', '')}"
+    if status == "dry-run":
+        return f"🧪 *Dry-run:* would open a rollback PR restoring `{rem.get('path', '')}` " \
+               f"to `{rem.get('restore_sha', '')[:7]}`"
+    return f"ℹ️ *Auto-rollback {status}:* {rem.get('reason', '')}"
+
+
 def build_blocks(r: RCAReport) -> list[dict]:
     evidence = "\n".join(f"• `{e}`" for e in r.evidence) or "_none captured_"
-    return [
+    blocks = [
         {"type": "header", "text": {"type": "plain_text",
                                     "text": f"{_EMOJI.get(r.confidence, '⚪')} {r.alert_name}"}},
         {"type": "section", "fields": [
@@ -22,6 +32,10 @@ def build_blocks(r: RCAReport) -> list[dict]:
         {"type": "section",
          "text": {"type": "mrkdwn", "text": f"*Suggested fix*\n{r.suggested_fix}"}},
     ]
+    if r.remediation:
+        blocks.append({"type": "section",
+                       "text": {"type": "mrkdwn", "text": _remediation_text(r.remediation)}})
+    return blocks
 
 
 async def notify(report: RCAReport) -> bool:

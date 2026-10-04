@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build + deploy the OpsAgent agent and the Prometheus/Alertmanager stack into the kind cluster.
-# Optional env: ANTHROPIC_API_KEY, SLACK_WEBHOOK_URL, WEBHOOK_TOKEN (stored in a k8s Secret).
+# Optional env: ANTHROPIC_API_KEY, SLACK_WEBHOOK_URL, WEBHOOK_TOKEN, GITHUB_TOKEN, REMEDIATION_ENABLED, REMEDIATION_MODE (stored in a k8s Secret).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 AGENT_IMAGE=opsagent/agent:0.1.0
@@ -17,7 +17,7 @@ kind load docker-image "$AGENT_IMAGE" --name opsagent
 echo ">> deploying agent"
 kubectl apply -f k8s/agent/agent.yaml
 secret_args=()
-for v in ANTHROPIC_API_KEY SLACK_WEBHOOK_URL WEBHOOK_TOKEN; do
+for v in ANTHROPIC_API_KEY SLACK_WEBHOOK_URL WEBHOOK_TOKEN GITHUB_TOKEN REMEDIATION_ENABLED REMEDIATION_MODE; do
   [ -n "${!v:-}" ] && secret_args+=("--from-literal=$v=${!v}")
 done
 if [ ${#secret_args[@]} -gt 0 ]; then
