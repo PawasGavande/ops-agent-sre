@@ -1,5 +1,6 @@
 import hmac
 import logging
+import os
 
 from fastapi import FastAPI, Header, HTTPException
 
@@ -10,6 +11,10 @@ from .models import AlertmanagerPayload
 from .notifier import notify
 from .remediation import propose_rollback
 
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 log = logging.getLogger("opsagent")
 app = FastAPI(title="OpsAgent")
 
@@ -46,6 +51,11 @@ async def alertmanager(payload: AlertmanagerPayload,
         if outcome.status != "skipped" or settings.remediation_enabled:
             report.remediation = outcome.as_dict() | {"status": outcome.status}
         sent = await notify(report)
-        log.info("analyzed alert=%s pod=%s/%s source=%s", name, ns, pod, report.source)
+        log.info(
+            "RCA alert=%s pod=%s/%s source=%s confidence=%s\n  root cause: %s\n  fix: %s\n"
+            "  remediation: %s",
+            name, ns, pod, report.source, report.confidence, report.root_cause,
+            report.suggested_fix, report.remediation or "n/a",
+        )
         results.append({"alert": name, "report": report.model_dump(), "notified": sent})
     return {"processed": len(results), "results": results}
