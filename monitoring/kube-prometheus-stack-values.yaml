@@ -33,7 +33,11 @@ alertmanager:
       group_wait: 10s        # short for demos; raise in production
       group_interval: 1m
       repeat_interval: 1h    # each repeat triggers an LLM call + Slack post
+      # The chart's default route sends Watchdog to a receiver named "null". Helm replaces
+      # lists wholesale, so we must drop that sub-route (and keep a "null" receiver defined).
+      routes: []
     receivers:
+      - name: "null"
       - name: opsagent
         webhook_configs:
           - url: http://opsagent.opsagent-system.svc.cluster.local/webhook/alertmanager

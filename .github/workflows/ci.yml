@@ -77,7 +77,8 @@ jobs:
           python3 -c "import yaml; v=yaml.safe_load(open('monitoring/kube-prometheus-stack-values.yaml')); yaml.safe_dump(v['alertmanager']['config'], open('/tmp/am.yml','w'))"
       - run: promtool check rules /tmp/opsagent-rules.yml
       - run: promtool test rules monitoring/tests/rules_test.yml
-      - run: amtool check-config /tmp/am.yml
+      - name: Validate Alertmanager config as merged with chart defaults
+        run: python3 scripts/check-alertmanager.py
 
   docker:
     name: Docker builds
