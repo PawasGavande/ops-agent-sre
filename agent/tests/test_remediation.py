@@ -159,3 +159,14 @@ def test_slack_blocks_show_pr_link():
     assert "pull/42" in str(notifier.build_blocks(rep))
     rep.remediation = {"status": "skipped", "reason": "no previous revision"}
     assert "no previous revision" in str(notifier.build_blocks(rep))
+
+
+def test_webhook_logs_rca(monkeypatch, caplog):
+    import logging
+    monkeypatch.setattr(diagnostics, "run_kubectl",
+                        lambda a: "FATAL could not connect (connection refused)")
+    payload = {"alerts": [{"status": "firing", "labels": {
+        "alertname": "PodCrashLooping", "namespace": "opsagent-demo", "pod": "faulty-app-x"}}]}
+    with caplog.at_level(logging.INFO, logger="opsagent"):
+        TestClient(fastapi_app).post("/webhook/alertmanager", json=payload)
+    assert "root cause:" in caplog.text and "faulty-app-x" in caplog.text

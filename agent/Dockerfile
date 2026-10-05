@@ -1,5 +1,6 @@
 FROM python:3.12-slim
-ENV PYTHONUNBUFFERED=1
+# kubectl needs a writable HOME for its discovery cache
+ENV PYTHONUNBUFFERED=1 HOME=/tmp
 ARG KUBECTL_VERSION=v1.31.0
 ARG TARGETARCH=amd64
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
