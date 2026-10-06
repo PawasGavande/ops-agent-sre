@@ -77,3 +77,6 @@ Alert rules are unit-tested with promtool:
 python3 scripts/extract-rules.py /tmp/opsagent-rules.yml
 promtool test rules monitoring/tests/rules_test.yml
 ```
+```bash
+In progress
+```
